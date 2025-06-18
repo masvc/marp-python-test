@@ -1,0 +1,122 @@
+name: Marp Markdown to PDF Converter
+
+on:
+  workflow_dispatch:
+    inputs:
+      markdown_file:
+        description: "MDファイル名を入力 (例: sample-presentation.md)"
+        required: true
+        default: "sample-presentation.md"
+      source_folder:
+        description: "MDファイルがあるフォルダ"
+        required: true
+        default: "slides"
+        type: choice
+        options:
+          - "slides"
+          - "presentations"
+          - "docs"
+      output_folder:
+        description: "PDF出力先フォルダ"
+        required: true
+        default: "pdf"
+        type: choice
+        options:
+          - "pdf"
+          - "output"
+          - "exports"
+      css_theme:
+        description: "CSSテーマファイル"
+        required: true
+        default: "default.css"
+        type: choice
+        options:
+          - "default.css"
+          - "corporate.css"
+          - "minimal.css"
+          - "dark.css"
+
+jobs:
+  convert-to-pdf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Marp CLI
+        run: npm install -g @marp-team/marp-cli
+
+      - name: Create necessary directories
+        run: |
+          mkdir -p ${{ github.event.inputs.source_folder }}
+          mkdir -p ${{ github.event.inputs.output_folder }}
+          mkdir -p css
+
+      - name: Check if markdown file exists
+        run: |
+          if [ ! -f "${{ github.event.inputs.source_folder }}/${{ github.event.inputs.markdown_file }}" ]; then
+            echo "Error: ファイル ${{ github.event.inputs.source_folder }}/${{ github.event.inputs.markdown_file }} が見つかりません"
+            echo "利用可能なファイル:"
+            ls -la ${{ github.event.inputs.source_folder }}/ || echo "フォルダが存在しません"
+            exit 1
+          fi
+
+      - name: Check if CSS file exists
+        run: |
+          if [ ! -f "css/${{ github.event.inputs.css_theme }}" ]; then
+            echo "Warning: CSSファイル css/${{ github.event.inputs.css_theme }} が見つかりません"
+            echo "デフォルトテーマを使用します"
+          fi
+
+      - name: Convert MD to PDF
+        run: |
+          input_file="${{ github.event.inputs.source_folder }}/${{ github.event.inputs.markdown_file }}"
+          filename=$(basename "${{ github.event.inputs.markdown_file }}")
+          output_file="${{ github.event.inputs.output_folder }}/${filename%.*}.pdf"
+          css_file="css/${{ github.event.inputs.css_theme }}"
+
+          echo "変換開始: $input_file → $output_file"
+
+          # CSSファイルが存在するかチェック
+          if [ -f "$css_file" ]; then
+            echo "カスタムCSSを使用: $css_file"
+            marp "$input_file" --pdf --theme "$css_file" --output "$output_file"
+          else
+            echo "デフォルトテーマを使用"
+            marp "$input_file" --pdf --output "$output_file"
+          fi
+
+          echo "変換完了: $output_file"
+
+      - name: List generated files
+        run: |
+          echo "生成されたPDFファイル:"
+          ls -la ${{ github.event.inputs.output_folder }}/
+
+      - name: Upload PDF as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-pdf
+          path: ${{ github.event.inputs.output_folder }}/*.pdf
+          retention-days: 30
+
+      - name: Commit and push generated PDF
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          git add ${{ github.event.inputs.output_folder }}/
+
+          if git diff --cached --quiet; then
+            echo "変更がありません"
+          else
+            git commit -m "📄 Generated PDF from ${{ github.event.inputs.markdown_file }}"
+            git push
+            echo "PDFファイルをリポジトリにコミットしました"
+          fi
