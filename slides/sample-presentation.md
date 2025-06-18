@@ -58,24 +58,35 @@ paginate: true
 
 ---
 
-## 🚀 使用方法
+## 🚀 使用方法 - 準備
 
 ### Step 1: ファイル準備
 
 1. `slides/` フォルダに Markdown ファイルを配置
-2. 必要に応じてカスタム CSS を `css/` フォルダに追加
+2. カスタム CSS を `css/` フォルダに追加
 
-### Step 2: Actions 実行
+### Step 2: GitHub Actions を開く
 
 1. GitHub の **Actions** タブを開く
 2. **Marp Markdown to PDF Converter** を選択
-3. **Run workflow** をクリック
-4. パラメータを入力して実行
 
-### Step 3: 結果確認
+---
 
-- `pdf/` フォルダに生成された PDF を確認
-- Artifacts からもダウンロード可能
+## 🚀 使用方法 - 実行
+
+### Step 3: ワークフロー実行
+
+1. **Run workflow** をクリック
+2. パラメータを入力：
+   - MD ファイル名
+   - フォルダ選択
+   - テーマ選択
+3. **Run workflow** で実行開始
+
+### Step 4: 結果確認
+
+- `pdf/` フォルダで PDF 確認
+- Artifacts からダウンロード可能
 
 ---
 
@@ -98,8 +109,6 @@ paginate: true
 # 見出し 1
 
 ## 見出し 2
-
-### 見出し 3
 
 **太字** _斜体_ `コード`
 
